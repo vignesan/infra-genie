@@ -130,7 +130,8 @@ substitutions:
   _STAGING_PROJECT_ID: qwiklabs-gcp-03-ec92c6095411
   _REGION: europe-west2
 
-logging: CLOUD_LOGGING_ONLY
+options:
+  logging: CLOUD_LOGGING_ONLY
 
 
 #
