@@ -129,6 +129,8 @@ steps:
 substitutions:
   _STAGING_PROJECT_ID: qwiklabs-gcp-03-ec92c6095411
   _REGION: europe-west2
+  _ARTIFACT_REGISTRY_REPO_NAME: infra-genie
+  _CONTAINER_NAME: infrastructure-genie
 
 options:
   logging: CLOUD_LOGGING_ONLY
