@@ -24,7 +24,7 @@ def create_terraform_docs_mcp():
     """Create Terraform Docs MCP toolset using Streamable HTTP"""
     return MCPToolset(
         connection_params=StreamableHTTPConnectionParams(
-            url="http://localhost:8080/mcp",
+            url="https://terraform-mcp-server-610548143990.europe-west4.run.app/mcp",
             headers={}  # No authentication required - public endpoint
         )
     )
