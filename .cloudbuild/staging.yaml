@@ -85,6 +85,8 @@ steps:
       - "--allow-unauthenticated"
       - "--set-secrets"
       - "GITHUB_PERSONAL_ACCESS_TOKEN=github-pat:latest"
+      - "--memory=1Gi"
+      - "--timeout=600"
 
   # Deploy terraform-mcp-server to Staging (Public)
   - name: "gcr.io/cloud-builders/gcloud"
@@ -159,10 +161,11 @@ steps:
         -t 30s -u 10 -r 0.5 \
         --csv=tests/load_test/.results/results \
         --html=tests/load_test/.results/report.html
-    env: ['PATH=/usr/local/bin:/usr/bin:~/.local/bin']
+    env:
+      - 'PATH=/usr/local/bin:/usr/bin:~/.local/bin'
 
   # Export Load Test Results to GCS
-  - name: gcr.io/cloud-builders/gcloud
+  - name: "gcr.io/cloud-builders/gcloud"
     id: export-results-to-gcs
     entrypoint: /bin/bash
     args:
