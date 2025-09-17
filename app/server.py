@@ -25,6 +25,7 @@ from vertexai import agent_engines
 from app.utils.gcs import create_bucket_if_not_exists
 from app.utils.tracing import CloudTraceLoggingSpanExporter
 from app.utils.typing import Feedback
+from app.compliance_api import router as compliance_router
 
 _, project_id = google.auth.default()
 logging_client = google_cloud_logging.Client()
@@ -69,6 +70,9 @@ app: FastAPI = get_fast_api_app(
 )
 app.title = "infrastructure-genie"
 app.description = "API for interacting with the Agent infrastructure-genie"
+
+# Include compliance monitoring endpoints
+app.include_router(compliance_router, prefix="/api/v1", tags=["compliance"])
 
 
 @app.post("/feedback")

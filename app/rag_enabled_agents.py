@@ -10,6 +10,7 @@ from app.mcp_github import create_github_mcp, create_microsoft_learn_mcp, create
 from app.image_generation_tool import generate_technical_image
 from app.diagrams_rag_agent import diagrams_expert_agent
 from app.rag_storage_system import store_specialist_output
+from app.compliance_guardrails import guardrails, GuardrailAction
 import os
 import google.auth
 
@@ -29,27 +30,69 @@ class RagEnabledAgentTool(AgentTool):
         self.specialist_name = specialist_name
 
     async def run_async(self, *, args, tool_context):
-        """Run the agent and store output in RAG."""
+        """Run the agent with guardrails and store output in RAG."""
         result = None
         try:
-            # Run the original agent
-            result = await super().run_async(args=args, tool_context=tool_context)
-
-            # Extract query for RAG storage (assume first arg is the query)
+            # Extract query for validation
             query = str(args.get('query', args))
+
+            # 🛡️ BEFORE CALLBACK: Input validation
+            print(f"🛡️ Validating input for {self.specialist_name}...")
+            is_valid, input_violations = await guardrails.validate_input(
+                query=query,
+                context={"specialist": self.specialist_name, "args": args}
+            )
+
+            if not is_valid:
+                blocked_violations = [v for v in input_violations if v.action == GuardrailAction.BLOCK]
+                if blocked_violations:
+                    violation_messages = [v.message for v in blocked_violations]
+                    return {
+                        "error": "Input blocked by compliance guardrails",
+                        "violations": violation_messages,
+                        "specialist": self.specialist_name
+                    }
+
+            # Run the original agent if input validation passed
+            result = await super().run_async(args=args, tool_context=tool_context)
 
             # Extract the output text from the result
             output_text = self._extract_output_text(result)
 
-            # Store in RAG asynchronously (don't block the main flow)
+            # 🛡️ AFTER CALLBACK: Output validation and sanitization
+            print(f"🛡️ Validating output from {self.specialist_name}...")
+            sanitized_output, output_violations = await guardrails.validate_output(
+                output=output_text,
+                specialist_name=self.specialist_name,
+                context={"query": query}
+            )
+
+            # Update result with sanitized output if needed
+            if sanitized_output != output_text:
+                print(f"⚠️ Output sanitized for {self.specialist_name}")
+                result = self._update_result_with_sanitized_output(result, sanitized_output)
+
+            # Store in RAG asynchronously (store sanitized version)
             asyncio.create_task(
                 store_specialist_output(
                     specialist_name=self.specialist_name,
                     query=query,
-                    output=output_text,
-                    context={"agent_name": self.specialist_name}
+                    output=sanitized_output,
+                    context={
+                        "agent_name": self.specialist_name,
+                        "guardrails_violations": len(input_violations + output_violations),
+                        "compliance_checked": True
+                    }
                 )
             )
+
+            # Add compliance metadata to result
+            if hasattr(result, '__dict__'):
+                result.compliance_info = {
+                    "input_violations": len(input_violations),
+                    "output_violations": len(output_violations),
+                    "sanitized": sanitized_output != output_text
+                }
 
             return result
 
@@ -76,6 +119,28 @@ class RagEnabledAgentTool(AgentTool):
                 return str(result.content)
         else:
             return str(result)
+
+    def _update_result_with_sanitized_output(self, result, sanitized_output: str):
+        """Update result object with sanitized output."""
+        if isinstance(result, dict):
+            if "output" in result:
+                result["output"] = sanitized_output
+            elif "content" in result:
+                result["content"] = sanitized_output
+            elif "message" in result:
+                result["message"] = sanitized_output
+            else:
+                result["sanitized_output"] = sanitized_output
+        elif hasattr(result, 'content'):
+            if hasattr(result.content, 'parts'):
+                # Update the first text part
+                for part in result.content.parts:
+                    if hasattr(part, 'text'):
+                        part.text = sanitized_output
+                        break
+            else:
+                result.content = sanitized_output
+        return result
 
 
 # Create the base specialist agents
