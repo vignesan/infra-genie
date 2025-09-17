@@ -1,8 +1,14 @@
-FROM node:20-slim
+FROM node:20-slim AS mcp_builder
 
-# Install Python and pip for FastAPI
-RUN apt-get update && apt-get install -y python3 python3-pip && rm -rf /var/lib/apt/lists/*
-RUN pip3 install --no-cache-dir fastapi uvicorn --break-system-packages
+WORKDIR /usr/src/app
+# Install the MCP server globally
+RUN npm install -g @wangkanai/devops-mcp
+
+# Stage 2: Build the Python wrapper application
+FROM python:3.11-slim-buster AS python_wrapper
+
+# Install FastAPI and Uvicorn
+RUN pip install --no-cache-dir fastapi uvicorn --break-system-packages
 
 WORKDIR /usr/src/app
 
@@ -10,6 +16,10 @@ WORKDIR /usr/src/app
 COPY entrypoint.sh .
 COPY wrapper.py .
 RUN chmod +x entrypoint.sh
+
+# Copy the npx executable and the installed MCP package from the mcp_builder stage
+COPY --from=mcp_builder /usr/local/bin/npx /usr/local/bin/npx
+COPY --from=mcp_builder /usr/local/lib/node_modules/@wangkanai/devops-mcp /usr/local/lib/node_modules/@wangkanai/devops-mcp
 
 # Set the entrypoint
 ENTRYPOINT ["./entrypoint.sh"]
