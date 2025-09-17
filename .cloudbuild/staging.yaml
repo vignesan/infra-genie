@@ -85,8 +85,6 @@ steps:
       - "--allow-unauthenticated"
       - "--set-secrets"
       - "GITHUB_PERSONAL_ACCESS_TOKEN=github-pat:latest"
-      - "--memory=1Gi"
-      - "--timeout=600"
 
   # Deploy terraform-mcp-server to Staging (Public)
   - name: "gcr.io/cloud-builders/gcloud"
@@ -134,10 +132,10 @@ steps:
       - "-c"
       - |
         echo $(gcloud run services describe infrastructure-genie \
-        --region ${_REGION} --project ${_STAGING_PROJECT_ID} --format=\"value(status.url\")) > staging_url.txt
+        --region ${_REGION} --project ${_STAGING_PROJECT_ID} --format='value(status.url') > staging_url.txt
 
   # Fetch ID Token
-  - name: gcr.io/cloud-builders/gcloud
+  - name: "gcr.io/cloud-builders/gcloud"
     id: fetch-id-token
     entrypoint: /bin/bash
     args:
