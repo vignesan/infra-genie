@@ -28,11 +28,15 @@ class RagEnabledAgentTool(AgentTool):
         super().__init__(agent=agent)
         self.specialist_name = specialist_name
 
-    async def __call__(self, query: str, invocation_context=None):
+    async def run_async(self, *, args, tool_context):
         """Run the agent and store output in RAG."""
+        result = None
         try:
             # Run the original agent
-            result = await super().__call__(query, invocation_context)
+            result = await super().run_async(args=args, tool_context=tool_context)
+
+            # Extract query for RAG storage (assume first arg is the query)
+            query = str(args.get('query', args))
 
             # Extract the output text from the result
             output_text = self._extract_output_text(result)
@@ -51,7 +55,8 @@ class RagEnabledAgentTool(AgentTool):
 
         except Exception as e:
             print(f"❌ Error in RAG-enabled agent {self.specialist_name}: {e}")
-            return result  # Return original result even if RAG storage fails
+            # Return result if we have it, otherwise return error info
+            return result if result is not None else {"error": str(e)}
 
     def _extract_output_text(self, result) -> str:
         """Extract text output from agent result."""
@@ -126,6 +131,6 @@ diagrams_tool = RagEnabledAgentTool(agent=diagrams_expert_agent, specialist_name
 root_agent = Agent(
     name="infrastructure_genie",
     model="gemini-2.5-flash",
-    instruction="Infrastructure Genie - Smart workflow orchestrator. ALWAYS generate diagrams! DIAGRAM PRIORITY: 1) For diagram requests, FIRST try diagrams_expert (RAG-powered diagram specialist with code generation). 2) ONLY if diagrams_expert lacks info or fails, gather context from specialists: Azure=microsoft_specialist, GCP/AWS=search_specialist, GitHub=github_specialist. 3) LAST RESORT: use image_generation_specialist (pure AI generation). The diagrams_expert is PREFERRED because it uses RAG knowledge, generates accurate Python code, and creates professional technical diagrams. Use image_generation_specialist only when programmatic approach fails.",
+    instruction="Infrastructure Genie - Smart workflow orchestrator. Choose appropriate specialists based on user requests. SPECIALIST USAGE: 1) For Terraform/infrastructure code questions: use terraform_specialist, 2) For Azure documentation: use microsoft_specialist, 3) For GitHub repository info: use github_specialist, 4) For general cloud questions: use search_specialist, 5) For diagram/visualization requests: FIRST try diagrams_expert (RAG-powered with code generation), then image_generation_specialist if needed. Only generate diagrams when explicitly requested or when user asks for architecture visualization. Respond directly to infrastructure questions without automatically creating diagrams.",
     tools=[github_tool, microsoft_tool, terraform_tool, search_tool, diagrams_tool, image_tool],
 )

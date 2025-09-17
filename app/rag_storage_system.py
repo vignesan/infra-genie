@@ -294,30 +294,32 @@ OUTPUT:
         return chunks
 
     async def _store_chunk_in_rag(self, corpus_id: str, chunk: str, specialist_name: str, query: str, chunk_index: int):
-        """Store a single chunk in the RAG corpus with embeddings."""
+        """Store a single chunk in the RAG corpus using upload_file."""
+
+        import tempfile
 
         try:
             # Create a temporary file for the chunk
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            file_name = f"/tmp/{specialist_name}_{timestamp}_{chunk_index}.txt"
 
-            # Write chunk to temporary file
-            with open(file_name, 'w', encoding='utf-8') as f:
-                f.write(chunk)
+            # Use tempfile to create a proper temporary file
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as temp_file:
+                temp_file.write(chunk)
+                temp_file_path = temp_file.name
 
-            # Import the file into the RAG corpus
-            response = rag.import_files(
+            # Upload the file directly to the RAG corpus
+            rag_file = rag.upload_file(
                 corpus_name=corpus_id,
-                paths=[file_name],
-                chunk_size=500,  # Vertex AI will further chunk if needed
-                chunk_overlap=50
+                path=temp_file_path,
+                display_name=f"{specialist_name}_{timestamp}_{chunk_index}",
+                description=f"Output from {specialist_name} for query: {query[:100]}..."
             )
 
-            print(f"  📦 Stored chunk {chunk_index} for {specialist_name}")
+            print(f"  📦 Stored chunk {chunk_index} for {specialist_name} as {rag_file.name}")
 
             # Clean up temporary file
             try:
-                os.remove(file_name)
+                os.unlink(temp_file_path)
             except:
                 pass
 
@@ -325,7 +327,8 @@ OUTPUT:
             print(f"  ❌ Failed to store chunk {chunk_index}: {e}")
             # Clean up temporary file on error
             try:
-                os.remove(file_name)
+                if 'temp_file_path' in locals():
+                    os.unlink(temp_file_path)
             except:
                 pass
 
