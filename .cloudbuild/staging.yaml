@@ -42,6 +42,7 @@ steps:
         "mcp-servers/terraform/Dockerfile",
         "mcp-servers/terraform",
       ]
+    env: ['DOCKER_BUILDKIT=1']
   - name: "gcr.io/cloud-builders/docker"
     args:
       [
@@ -158,8 +159,7 @@ steps:
         -t 30s -u 10 -r 0.5 \
         --csv=tests/load_test/.results/results \
         --html=tests/load_test/.results/report.html
-    env:
-      - 'PATH=/usr/local/bin:/usr/bin:~/.local/bin'
+    env: ['PATH=/usr/local/bin:/usr/bin:~/.local/bin']
 
   # Export Load Test Results to GCS
   - name: gcr.io/cloud-builders/gcloud
@@ -176,7 +176,7 @@ steps:
         echo "________________________________________________________________________ _"
 
   # Trigger Prod Deployment
-  - name: gcr.io/cloud-builders/gcloud
+  - name: "gcr.io/cloud-builders/gcloud"
     id: trigger-prod-deployment
     entrypoint: gcloud
     args:
@@ -192,7 +192,7 @@ steps:
       - "--sha"
       - $COMMIT_SHA
 
-  - name: gcr.io/cloud-builders/gcloud
+  - name: "gcr.io/cloud-builders/gcloud"
     id: echo-view-build-trigger-link
     entrypoint: /bin/bash
     args:
