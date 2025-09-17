@@ -13,7 +13,7 @@
 # limitations under the License.
 
 steps:
-  # Build and Push
+  # Build and Push for infrastructure-genie
   - name: "gcr.io/cloud-builders/docker"
     args:
       [
@@ -31,7 +31,43 @@ steps:
         "$_REGION-docker.pkg.dev/$PROJECT_ID/$_ARTIFACT_REGISTRY_REPO_NAME/$_CONTAINER_NAME",
       ]
 
-  # Deploy to Staging
+  # Build and Push for terraform-mcp-server
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t",
+        "$_REGION-docker.pkg.dev/$PROJECT_ID/$_ARTIFACT_REGISTRY_REPO_NAME/terraform-mcp-server",
+        "-f",
+        "mcp-servers/terraform/Dockerfile",
+        "mcp-servers/terraform",
+      ]
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "push",
+        "$_REGION-docker.pkg.dev/$PROJECT_ID/$_ARTIFACT_REGISTRY_REPO_NAME/terraform-mcp-server",
+      ]
+
+  # Build and Push for azure-devops-mcp
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t",
+        "$_REGION-docker.pkg.dev/$PROJECT_ID/$_ARTIFACT_REGISTRY_REPO_NAME/azure-devops-mcp",
+        "-f",
+        "mcp-servers/azure-devops/Dockerfile",
+        "mcp-servers/azure-devops",
+      ]
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "push",
+        "$_REGION-docker.pkg.dev/$PROJECT_ID/$_ARTIFACT_REGISTRY_REPO_NAME/azure-devops-mcp",
+      ]
+
+  # Deploy infrastructure-genie to Staging (Public)
   - name: "gcr.io/cloud-builders/gcloud"
     id: deploy-staging
     entrypoint: gcloud
@@ -45,6 +81,47 @@ steps:
       - "${_REGION}"
       - "--project"
       - "${_STAGING_PROJECT_ID}"
+      - "--allow-unauthenticated"
+      - "--set-secrets"
+      - "GITHUB_PERSONAL_ACCESS_TOKEN=github-pat:latest"
+
+  # Deploy terraform-mcp-server to Staging (Public)
+  - name: "gcr.io/cloud-builders/gcloud"
+    id: deploy-staging-mcp
+    entrypoint: gcloud
+    args:
+      - "run"
+      - "deploy"
+      - "terraform-mcp-server"
+      - "--image"
+      - "$_REGION-docker.pkg.dev/$PROJECT_ID/$_ARTIFACT_REGISTRY_REPO_NAME/terraform-mcp-server"
+      - "--region"
+      - "${_REGION}"
+      - "--project"
+      - "${_STAGING_PROJECT_ID}"
+      - "--set-env-vars"
+      - "TRANSPORT_MODE=streamable-http,TRANSPORT_HOST=0.0.0.0"
+      - "--allow-unauthenticated"
+
+  # Deploy azure-devops-mcp to Staging (Public)
+  - name: "gcr.io/cloud-builders/gcloud"
+    id: deploy-staging-ado-mcp
+    entrypoint: gcloud
+    args:
+      - "run"
+      - "deploy"
+      - "azure-devops-mcp"
+      - "--image"
+      - "$_REGION-docker.pkg.dev/$PROJECT_ID/$_ARTIFACT_REGISTRY_REPO_NAME/azure-devops-mcp"
+      - "--region"
+      - "${_REGION}"
+      - "--project"
+      - "${_STAGING_PROJECT_ID}"
+      - "--set-env-vars"
+      - "ADO_ORG_URL=${_ADO_ORG_URL},ADO_PROJECT=${_ADO_PROJECT}"
+      - "--set-secrets"
+      - "ADO_PAT=ado-pat:latest"
+      - "--allow-unauthenticated"
 
   # Fetch Staging Service URL
   - name: "gcr.io/cloud-builders/gcloud"
@@ -54,7 +131,7 @@ steps:
       - "-c"
       - |
         echo $(gcloud run services describe infrastructure-genie \
-        --region ${_REGION} --project ${_STAGING_PROJECT_ID} --format="value(status.url)") > staging_url.txt
+        --region ${_REGION} --project ${_STAGING_PROJECT_ID} --format=\"value(status.url\")) > staging_url.txt
 
   # Fetch ID Token
   - name: gcr.io/cloud-builders/gcloud
@@ -74,7 +151,7 @@ steps:
       - |
         export _ID_TOKEN=$(cat id_token.txt)
         export _STAGING_URL=$(cat staging_url.txt)
-        pip install locust==2.31.1 --user
+        pip install locust==2.25.1 --user
         locust -f tests/load_test/load_test.py \
         --headless \
         -H $$_STAGING_URL \
@@ -93,10 +170,10 @@ steps:
       - |
         export _TIMESTAMP=$(date +%Y%m%d-%H%M%S)
         gsutil -m cp -r tests/load_test/.results gs://${_BUCKET_NAME_LOAD_TEST_RESULTS}/results-$${_TIMESTAMP}
-        echo "_________________________________________________________________________"
+        echo "________________________________________________________________________ _"
         echo "Load test results copied to gs://${_BUCKET_NAME_LOAD_TEST_RESULTS}/results-$${_TIMESTAMP}"
         echo "HTTP link: https://console.cloud.google.com/storage/browser/${_BUCKET_NAME_LOAD_TEST_RESULTS}/results-$${_TIMESTAMP}"
-        echo "_________________________________________________________________________"
+        echo "________________________________________________________________________ _"
 
   # Trigger Prod Deployment
   - name: gcr.io/cloud-builders/gcloud
@@ -121,19 +198,18 @@ steps:
     args:
       - "-c"
       - |
-        echo "_________________________________________________________________________"
+        echo "________________________________________________________________________ _"
         echo "Production deployment triggered. View progress and / or approve on the Cloud Build Console:"
         echo "https://console.cloud.google.com/cloud-build/builds;region=$LOCATION"
-        echo "_________________________________________________________________________"
+        echo "________________________________________________________________________ _"
 
 substitutions:
   _STAGING_PROJECT_ID: qwiklabs-gcp-03-ec92c6095411
-  _REGION: europe-west2
+  _REGION: europe-west4
   _ARTIFACT_REGISTRY_REPO_NAME: infrastructure-genie
   _CONTAINER_NAME: infrastructure-genie
+  _ADO_ORG_URL: "https://dev.azure.com/1000045978"
+  _ADO_PROJECT: "https://dev.azure.com/1000045978/adk-hackathon"
 
 options:
   logging: CLOUD_LOGGING_ONLY
-
-
-#

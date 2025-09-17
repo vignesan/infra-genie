@@ -21,7 +21,7 @@ backend:
 		--source . \
 		--memory "4Gi" \
 		--project $$PROJECT_ID \
-		--region "europe-west2" \
+		--region "europe-west4" \
 		--no-allow-unauthenticated \
 		--no-cpu-throttling \
 		--labels "created-by=adk" \
