@@ -16,4 +16,4 @@ host_connection_name = "git-infrastructure-genie"
 repository_name = "infrastructure-genie"
 
 # The Google Cloud region you will use to deploy the infrastructure
-region = "europe-west2"
+region = "europe-west4"

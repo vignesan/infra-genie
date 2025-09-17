@@ -16,7 +16,7 @@ import os
 import google.auth
 _, project_id = google.auth.default()
 os.environ.setdefault("GOOGLE_CLOUD_PROJECT", "qwiklabs-gcp-03-ec92c6095411")
-os.environ.setdefault("GOOGLE_CLOUD_LOCATION", "europe-west2")
+os.environ.setdefault("GOOGLE_CLOUD_LOCATION", "europe-west4")
 os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "True")
 
 # Configure the genai client

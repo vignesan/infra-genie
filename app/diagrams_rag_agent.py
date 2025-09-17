@@ -14,7 +14,7 @@ import asyncio
 
 # Set up environment
 os.environ.setdefault("GOOGLE_CLOUD_PROJECT", "qwiklabs-gcp-03-ec92c6095411")
-os.environ.setdefault("GOOGLE_CLOUD_LOCATION", "europe-west2")
+os.environ.setdefault("GOOGLE_CLOUD_LOCATION", "europe-west4")
 
 # Create RAG tool for diagrams documentation - Auto-initialized at runtime
 async def _setup_diagrams_rag():

@@ -15,7 +15,7 @@ class RagStatusMonitor:
     def __init__(self):
         vertexai.init(
             project="qwiklabs-gcp-03-ec92c6095411",
-            location="europe-west2"
+            location="europe-west4"
         )
 
     async def check_all_rag_systems(self) -> Dict:

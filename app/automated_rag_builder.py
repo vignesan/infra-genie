@@ -21,7 +21,7 @@ class AutomatedRagBuilder:
         # Initialize Vertex AI
         vertexai.init(
             project=os.environ.get("GOOGLE_CLOUD_PROJECT", "qwiklabs-gcp-03-ec92c6095411"),
-            location=os.environ.get("GOOGLE_CLOUD_LOCATION", "europe-west2")
+            location=os.environ.get("GOOGLE_CLOUD_LOCATION", "europe-west4")
         )
 
         # Initialize data source tools

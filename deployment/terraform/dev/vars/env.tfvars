@@ -5,4 +5,4 @@ project_name = "infrastructure-genie"
 dev_project_id = "your-dev-project-id"
 
 # The Google Cloud region you will use to deploy the infrastructure
-region = "europe-west2"
+region = "europe-west4"
