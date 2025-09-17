@@ -5,7 +5,7 @@ WORKDIR /usr/src/app
 RUN npm install -g @wangkanai/devops-mcp
 
 # Stage 2: Build the Python wrapper application
-FROM python:3.11-slim-buster AS python_wrapper
+FROM python:3.11-slim-bullseye AS python_wrapper
 
 # Install Node.js and npm in the Python stage
 RUN apt-get update && apt-get install -y nodejs npm && rm -rf /var/lib/apt/lists/*
