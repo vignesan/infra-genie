@@ -18,7 +18,7 @@ dependencies = [
     "aiofiles>=23.0.0",
     "python-multipart>=0.0.6",
     "PyGithub>=2.1.0",
-    "azure-devops>=7.1.0",
+    "azure-devops~=7.1.0b4",
     "requests>=2.31.0",
     "GitPython>=3.1.40",
 ]
