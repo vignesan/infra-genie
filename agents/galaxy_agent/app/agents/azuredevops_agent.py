@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import asyncio
+import os
 from google.adk.agents import Agent
 from ..azure_devops_client import AzureDevOpsClient
 
@@ -181,9 +182,16 @@ class AzureDevOpsAgent(Agent):
         else:
             return f"❌ Failed to list pipelines: {result.get('message', 'Unknown error')}"
 
-# Instantiate the agent (will be replaced by instantiation in orchestrator_agent.py)
-azuredevops_agent = AzureDevOpsAgent(
-    org_url=os.getenv("GALAXY_ADO_ORG_URL"),
-    project=os.getenv("GALAXY_ADO_PROJECT"),
-    pat=os.getenv("GALAXY_ADO_PAT"),
-)
+# Instantiate the agent only if credentials are available
+org_url = os.getenv("GALAXY_ADO_ORG_URL")
+project = os.getenv("GALAXY_ADO_PROJECT")
+pat = os.getenv("GALAXY_ADO_PAT")
+
+if org_url and project and pat:
+    azuredevops_agent = AzureDevOpsAgent(
+        org_url=org_url,
+        project=project,
+        pat=pat,
+    )
+else:
+    azuredevops_agent = None

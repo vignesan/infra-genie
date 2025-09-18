@@ -1,7 +1,16 @@
-# galaxy
+# Galaxy Agent - Automated DevOps Workflow System
 
-A base ReAct agent built with Google's Agent Development Kit (ADK)
-Agent generated with [`googleCloudPlatform/agent-starter-pack`](https://github.com/GoogleCloudPlatform/agent-starter-pack) version `0.15.0`
+An advanced multi-agent system for automated Azure DevOps and GitHub workflow management, built with Google's Agent Development Kit (ADK). Galaxy Agent provides intelligent automation for DevOps workflows with A2A (Agent-to-Agent) protocol integration.
+
+## 🚀 Key Features
+
+- **LoopAgent Architecture**: ADK-compliant loop agent for iterative task processing
+- **Azure DevOps Integration**: Complete work item management, pipeline automation, and monitoring
+- **GitHub Operations**: Repository cloning, branching, PR creation, and code management
+- **Webhook Automation**: Automated workflows triggered by Azure DevOps work item comments
+- **A2A Protocol**: Seamless agent-to-agent communication with Infrastructure Genie
+- **LLM-Powered Analysis**: Intelligent requirement analysis and code generation
+- **Retry Logic**: Automatic retry mechanisms with comprehensive error handling
 
 ## Project Structure
 
@@ -29,6 +38,38 @@ Before you begin, ensure you have:
 - **Google Cloud SDK**: For GCP services - [Install](https://cloud.google.com/sdk/docs/install)
 - **Terraform**: For infrastructure deployment - [Install](https://developer.hashicorp.com/terraform/downloads)
 - **make**: Build automation tool - [Install](https://www.gnu.org/software/make/) (pre-installed on most Unix-based systems)
+- **Azure DevOps Account**: With Personal Access Token (PAT) permissions
+- **GitHub Account**: With Personal Access Token for repository operations
+
+## 🔧 Configuration
+
+### Environment Variables
+
+Copy the `.env` file and update with your actual credentials:
+
+```bash
+# Azure DevOps Configuration
+AZURE_DEVOPS_ORG=your-azure-devops-organization
+AZURE_DEVOPS_PROJECT=your-azure-devops-project
+AZURE_DEVOPS_PAT=your-azure-devops-personal-access-token
+
+# GitHub Configuration
+GITHUB_TOKEN=your-github-personal-access-token
+GITHUB_OWNER=your-github-username-or-organization
+GITHUB_REPO=your-repository-name
+
+# Google AI Configuration (Optional for LLM features)
+GOOGLE_API_KEY=your-google-api-key
+```
+
+### Azure DevOps Webhook Setup
+
+Configure Azure DevOps webhook to trigger automation:
+1. Go to Project Settings > Service Hooks
+2. Create new webhook subscription
+3. Event: Work item commented
+4. URL: `https://your-domain.com/webhook/azure-devops/workitem`
+5. Configure authentication as needed
 
 
 ## Quick Start (Local Testing)

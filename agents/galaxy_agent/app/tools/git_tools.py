@@ -1,20 +1,41 @@
 import os
+import subprocess
+import asyncio
 from google.adk.tools import FunctionTool
 from google.adk.agents.invocation_context import InvocationContext
 from google.adk.tools.tool_context import ToolContext
-from google.adk.tools.run_shell_command import run_shell_command
 from github import Github
 
 async def _run_shell_command_wrapper(command: str, directory: str, tool_context: ToolContext) -> dict:
     """Wrapper to run shell commands and handle potential errors."""
-    result = await run_shell_command(command=command, directory=directory)
-    if result.get("error"): # Check for error key in the dictionary
-        error_message = result.get("error", "Unknown error")
-        stderr = result.get("stderr", "")
-        full_error = f"Command failed: {command}\nError: {error_message}\nStderr: {stderr}"
-        tool_context.state["git_operation_error"] = full_error
-        return {"status": "error", "message": full_error}
-    return {"status": "success", "stdout": result.get("stdout"), "stderr": result.get("stderr")}
+    try:
+        # Run command asynchronously using subprocess
+        process = await asyncio.create_subprocess_shell(
+            command,
+            cwd=directory,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+
+        stdout, stderr = await process.communicate()
+
+        result = {
+            "stdout": stdout.decode() if stdout else "",
+            "stderr": stderr.decode() if stderr else "",
+            "returncode": process.returncode
+        }
+
+        if process.returncode != 0:
+            full_error = f"Command failed: {command}\nReturn code: {process.returncode}\nStderr: {result['stderr']}"
+            tool_context.state["git_operation_error"] = full_error
+            return {"status": "error", "message": full_error}
+
+        return {"status": "success", "stdout": result["stdout"], "stderr": result["stderr"]}
+
+    except Exception as e:
+        error_message = f"Command execution failed: {command}\nException: {str(e)}"
+        tool_context.state["git_operation_error"] = error_message
+        return {"status": "error", "message": error_message}
 
 async def git_clone_repo(
     repo_url: str,
