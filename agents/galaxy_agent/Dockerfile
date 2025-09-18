@@ -2,14 +2,16 @@ FROM python:3.11-slim
 
 WORKDIR /app_root
 
-# Copy the entire galaxy project structure
-COPY . .
+# Copy essential project files for galaxy_agent from the build context (project root)
+COPY agents/galaxy_agent/pyproject.toml .
+COPY agents/galaxy_agent/uv.lock .
+COPY agents/galaxy_agent/app ./app
 
 # Install dependencies (assuming pyproject.toml or requirements.txt exists)
 # If using pyproject.toml with uv, use: RUN uv sync --frozen
 # If using requirements.txt, use: RUN pip install --no-cache-dir -r requirements.txt
 # For this example, let's assume uv is used and pyproject.toml is present
-RUN pip install uv && uv sync --python python3.11 --without jupyter
+RUN pip install uv && uv sync --python python3.11
 
 EXPOSE 8080
 

@@ -35,9 +35,6 @@ dev = [
 
 [project.optional-dependencies]
 
-jupyter = [
-    "jupyter~=1.0.0",
-]
 lint = [
     "ruff>=0.4.6",
     "mypy~=1.15.0",
