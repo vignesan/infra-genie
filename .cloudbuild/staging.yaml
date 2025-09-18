@@ -180,33 +180,6 @@ steps:
         echo "HTTP link: https://console.cloud.google.com/storage/browser/${_BUCKET_NAME_LOAD_TEST_RESULTS}/results-$${_TIMESTAMP}"
         echo "________________________________________________________________________ _"
 
-  # Trigger Prod Deployment
-  - name: "gcr.io/cloud-builders/gcloud"
-    id: trigger-prod-deployment
-    entrypoint: gcloud
-    args:
-      - "beta"
-      - "builds"
-      - "triggers"
-      - "run"
-      - "deploy-infrastructure-genie"
-      - "--region"
-      - "$LOCATION"
-      - "--project"
-      - "$PROJECT_ID"
-      - "--sha"
-      - $COMMIT_SHA
-
-  - name: "gcr.io/cloud-builders/gcloud"
-    id: echo-view-build-trigger-link
-    entrypoint: /bin/bash
-    args:
-      - "-c"
-      - |
-        echo "________________________________________________________________________ _"
-        echo "Production deployment triggered. View progress and / or approve on the Cloud Build Console:"
-        echo "https://console.cloud.google.com/cloud-build/builds;region=$LOCATION"
-        echo "________________________________________________________________________ _"
 
 substitutions:
   _STAGING_PROJECT_ID: qwiklabs-gcp-03-ec92c6095411
