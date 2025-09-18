@@ -68,6 +68,24 @@ steps:
         "$_REGION-docker.pkg.dev/$PROJECT_ID/$_ARTIFACT_REGISTRY_REPO_NAME/azure-devops-mcp",
       ]
 
+  # Build and Push for galaxy-app
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t",
+        "$_REGION-docker.pkg.dev/$PROJECT_ID/$_ARTIFACT_REGISTRY_REPO_NAME/galaxy-app",
+        "-f",
+        "agents/galaxy_agent/Dockerfile",
+        "agents/galaxy_agent",
+      ]
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "push",
+        "$_REGION-docker.pkg.dev/$PROJECT_ID/$_ARTIFACT_REGISTRY_REPO_NAME/galaxy-app",
+      ]
+
   # Deploy infrastructure-genie to Staging (Public)
   - name: "gcr.io/cloud-builders/gcloud"
     id: deploy-staging
@@ -87,6 +105,8 @@ steps:
       - "GITHUB_PERSONAL_ACCESS_TOKEN=github-pat:latest"
       - "--memory=1Gi"
       - "--timeout=600"
+      - "--set-env-vars"
+      - "GALAXY_APP_URL=${_GALAXY_APP_URL}"
 
   # Deploy terraform-mcp-server to Staging (Public)
   - name: "gcr.io/cloud-builders/gcloud"
@@ -125,6 +145,29 @@ steps:
       - "--set-secrets"
       - "ADO_PAT=ado-pat:latest"
       - "--allow-unauthenticated"
+
+  # Deploy galaxy-app to Staging (Public)
+  - name: "gcr.io/cloud-builders/gcloud"
+    id: deploy-staging-galaxy
+    entrypoint: gcloud
+    args:
+      - "run"
+      - "deploy"
+      - "galaxy-app"
+      - "--image"
+      - "$_REGION-docker.pkg.dev/$PROJECT_ID/$_ARTIFACT_REGISTRY_REPO_NAME/galaxy-app"
+      - "--region"
+      - "${_REGION}"
+      - "--project"
+      - "${_STAGING_PROJECT_ID}"
+      - "--allow-unauthenticated"
+      - "--set-env-vars"
+      - "INFRASTRUCTURE_GENIE_URL=${_INFRASTRUCTURE_GENIE_URL}"
+      - "GALAXY_GITHUB_PAT=github-pat:latest"
+      - "GALAXY_GITHUB_REPO_OWNER=${_GALAXY_GITHUB_REPO_OWNER}"
+      - "GALAXY_ADO_ORG_URL=${_ADO_ORG_URL}"
+      - "GALAXY_ADO_PROJECT=${_ADO_PROJECT}"
+      - "GALAXY_ADO_PAT=ado-pat:latest"
 
   # Fetch Staging Service URL
   - name: "gcr.io/cloud-builders/gcloud"
@@ -211,8 +254,10 @@ substitutions:
   _REGION: europe-west4
   _ARTIFACT_REGISTRY_REPO_NAME: infrastructure-genie
   _CONTAINER_NAME: infrastructure-genie
-  _ADO_ORG_URL: "https://dev.azure.com/1000045978"
-  _ADO_PROJECT: "https://dev.azure.com/1000045978/adk-hackathon"
+  _GALAXY_GITHUB_REPO_OWNER: "vignesan"
+  _ADO_ORG_URL: "https://dev.azure.com/vignesan-hex"
+  _ADO_PROJECT: "https://dev.azure.com/vignesan-hex/adk-hackathon"
+  _INFRASTRUCTURE_GENIE_URL: "https://infrastructure-genie-610548143990.europe-west4.run.app"
 
 options:
   logging: CLOUD_LOGGING_ONLY
