@@ -8,7 +8,7 @@
 *   **Intelligent RAG (Retrieval Augmented Generation):** Accesses and synthesizes information from diverse sources (e.g., documentation, codebases) to inform agent decisions.
 *   **Diagram Generation:** Automates the creation of technical diagrams based on infrastructure descriptions or code analysis.
 *   **Code Compliance & Guardrails:** Integrates with compliance APIs to ensure generated or modified code adheres to predefined standards.
-*   **Automated Code Modification & CI/CD (via Galaxy Agent):** Handles end-to-end code changes, Git operations, Pull Request creation, and CI/CD pipeline management triggered by external events (e.g., Azure DevOps webhooks).
+*   **Automated Code Modification & CI/CD:** Handles end-to-end code changes, Git operations, Pull Request creation, and CI/CD pipeline management triggered by external events (e.g., Azure DevOps webhooks).
 
 ## Project Setup
 
