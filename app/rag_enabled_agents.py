@@ -1,84 +1,32 @@
-"""
-RAG-Enabled Agents: Wrapper agents that automatically store their outputs in RAG corpora.
-"""
-
-import asyncio
+import os
+import google.auth
 from google.adk.agents import Agent
 from google.adk.tools import AgentTool
 from google.adk.tools import google_search
 from app.mcp_github import create_github_mcp, create_microsoft_learn_mcp, create_terraform_docs_mcp
 from app.image_generation_tool import generate_technical_image
 from app.diagrams_rag_agent import diagrams_expert_agent
-from app.rag_storage_system import store_specialist_output
-import os
-import google.auth
+from google.adk.a2a import RemoteA2aAgent
 
 
-# Set up environment
 _, project_id = google.auth.default()
 os.environ.setdefault("GOOGLE_CLOUD_PROJECT", "qwiklabs-gcp-03-ec92c6095411")
 os.environ.setdefault("GOOGLE_CLOUD_LOCATION", "europe-west4")
 os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "True")
 
+# Get Galaxy App URL from environment variable
+GALAXY_APP_URL = os.getenv("GALAXY_APP_URL")
 
-class RagEnabledAgentTool(AgentTool):
-    """AgentTool wrapper that automatically stores outputs in RAG."""
+# Define the remote Galaxy App agent
+remote_galaxy_app = None
+if GALAXY_APP_URL:
+    remote_galaxy_app = RemoteA2aAgent(
+        name="galaxy_app_service",
+        description="The remote Galaxy application service for various tasks.",
+        agent_card=GALAXY_APP_URL
+    )
 
-    def __init__(self, agent: Agent, specialist_name: str):
-        super().__init__(agent=agent)
-        self.specialist_name = specialist_name
-
-    async def run_async(self, *, args, tool_context):
-        """Run the agent and store output in RAG."""
-        result = None
-        try:
-            # Run the original agent
-            result = await super().run_async(args=args, tool_context=tool_context)
-
-            # Extract query for RAG storage (assume first arg is the query)
-            query = str(args.get('query', args))
-
-            # Extract the output text from the result
-            output_text = self._extract_output_text(result)
-
-            # Store in RAG asynchronously (don't block the main flow)
-            asyncio.create_task(
-                store_specialist_output(
-                    specialist_name=self.specialist_name,
-                    query=query,
-                    output=output_text,
-                    context={"agent_name": self.specialist_name}
-                )
-            )
-
-            return result
-
-        except Exception as e:
-            print(f"❌ Error in RAG-enabled agent {self.specialist_name}: {e}")
-            # Return result if we have it, otherwise return error info
-            return result if result is not None else {"error": str(e)}
-
-    def _extract_output_text(self, result) -> str:
-        """Extract text output from agent result."""
-        if isinstance(result, dict):
-            if "output" in result:
-                return str(result["output"])
-            elif "content" in result:
-                return str(result["content"])
-            elif "message" in result:
-                return str(result["message"])
-            else:
-                return str(result)
-        elif hasattr(result, 'content'):
-            if hasattr(result.content, 'parts'):
-                return ' '.join([part.text for part in result.content.parts if hasattr(part, 'text')])
-            else:
-                return str(result.content)
-        else:
-            return str(result)
-
-
-# Create the base specialist agents
+# Create specialized sub-agents for each MCP domain
 github_sub_agent = Agent(
     name="github_specialist",
     model="gemini-2.5-flash",
@@ -119,18 +67,24 @@ image_generation_sub_agent = Agent(
     output_key="image_result",
 )
 
-# Create RAG-enabled wrappers
-github_tool = RagEnabledAgentTool(agent=github_sub_agent, specialist_name="github_specialist")
-microsoft_tool = RagEnabledAgentTool(agent=microsoft_sub_agent, specialist_name="microsoft_specialist")
-terraform_tool = RagEnabledAgentTool(agent=terraform_sub_agent, specialist_name="terraform_specialist")
-search_tool = RagEnabledAgentTool(agent=search_sub_agent, specialist_name="search_specialist")
-image_tool = RagEnabledAgentTool(agent=image_generation_sub_agent, specialist_name="image_generation_specialist")
-diagrams_tool = RagEnabledAgentTool(agent=diagrams_expert_agent, specialist_name="diagrams_expert")
+# Wrap sub-agents as tools using AgentTool
+github_tool = AgentTool(agent=github_sub_agent)
+microsoft_tool = AgentTool(agent=microsoft_sub_agent)
+terraform_tool = AgentTool(agent=terraform_sub_agent)
+search_tool = AgentTool(agent=search_sub_agent)
+image_tool = AgentTool(agent=image_generation_sub_agent)
+diagrams_tool = AgentTool(agent=diagrams_expert_agent)
 
-# Create the root agent with RAG-enabled tools
 root_agent = Agent(
     name="infrastructure_genie",
     model="gemini-2.5-flash",
-    instruction="Infrastructure Genie - Smart workflow orchestrator. Choose appropriate specialists based on user requests. SPECIALIST USAGE: 1) For Terraform/infrastructure code questions: use terraform_specialist, 2) For Azure documentation: use microsoft_specialist, 3) For GitHub repository info: use github_specialist, 4) For general cloud questions: use search_specialist, 5) For diagram/visualization requests: FIRST try diagrams_expert (RAG-powered with code generation), then image_generation_specialist if needed. Only generate diagrams when explicitly requested or when user asks for architecture visualization. Respond directly to infrastructure questions without automatically creating diagrams.",
-    tools=[github_tool, microsoft_tool, terraform_tool, search_tool, diagrams_tool, image_tool],
+    instruction="Infrastructure Genie - Smart workflow orchestrator. ALWAYS generate diagrams! DIAGRAM PRIORITY: 1) For diagram requests, FIRST try diagrams_expert (RAG-powered diagram specialist with code generation). 2) ONLY if diagrams_expert lacks info or fails, gather context from specialists: Azure=microsoft_specialist, GCP/AWS=search_specialist, GitHub=github_specialist. 3) LAST RESORT: use image_generation_specialist (pure AI generation). The diagrams_expert is PREFERRED because it uses RAG knowledge, generates accurate Python code, and creates professional technical diagrams. Use image_generation_specialist only when programmatic approach fails.",
+    tools=[
+        github_tool, 
+        microsoft_tool, 
+        terraform_tool, 
+        search_tool, 
+        diagrams_tool, 
+        image_tool
+    ] + ([AgentTool(agent=remote_galaxy_app)] if remote_galaxy_app else []),
 )
