@@ -87,8 +87,7 @@ steps:
       - "--set-secrets"
       - "GITHUB_PERSONAL_ACCESS_TOKEN=github-pat:latest"
       - "--memory=1Gi"
-      - "--timeout=600"
-      - "--set-env-vars"
+
 
   # Deploy terraform-mcp-server to Staging (Public)
   - name: "gcr.io/cloud-builders/gcloud"
