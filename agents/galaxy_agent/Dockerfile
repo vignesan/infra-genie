@@ -11,7 +11,7 @@ COPY app ./app
 # If using pyproject.toml with uv, use: RUN uv sync --frozen
 # If using requirements.txt, use: RUN pip install --no-cache-dir -r requirements.txt
 # For this example, let's assume uv is used and pyproject.toml is present
-RUN pip install uv && uv sync --python python3.11 --without lint
+RUN pip install uv && uv sync --python python3.11
 
 EXPOSE 8080
 

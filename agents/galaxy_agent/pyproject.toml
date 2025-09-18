@@ -35,14 +35,6 @@ dev = [
 
 [project.optional-dependencies]
 
-lint = [
-    "ruff>=0.4.6",
-    "mypy~=1.15.0",
-    "codespell~=2.2.0",
-    "types-pyyaml~=6.0.12.20240917",
-    "types-requests~=2.32.0.20240914",
-]
-
 [tool.ruff]
 line-length = 88
 target-version = "py310"
