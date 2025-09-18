@@ -10,6 +10,12 @@
 *   **Code Compliance & Guardrails:** Integrates with compliance APIs to ensure generated or modified code adheres to predefined standards.
 *   **Automated Code Modification & CI/CD:** Handles end-to-end code changes, Git operations, Pull Request creation, and CI/CD pipeline management triggered by external events (e.g., Azure DevOps webhooks).
 
+### High-Level Architecture
+
+For a visual overview of the High-Level Infrastructure Genie's architecture, refer to the diagram below:
+
+![High-Level Architecture Diagram](docs/high-level-ig.png)
+
 ## Project Setup
 
 ### Prerequisites
@@ -101,9 +107,16 @@ Here's a detailed look at the specialized agents within the `Infrastructure Geni
     *   **Focus**: Uses GitHub examples, Microsoft docs, and Terraform resources for code generation.
 
 8.  **`root_agent` (`infrastructure_genie`)**:
-    *   **Purpose**: The main orchestrator for the entire `infrastructure-genie` application. It coordinates and delegates tasks to the specialized sub-agents based on the user's request.
+    *   **Purpose**: The main orchestrator for the entire `infrastructure_genie` application. It coordinates and delegates tasks to the specialized sub-agents based on the user's request.
     *   **Instruction**: Provides a comprehensive overview of its capabilities (diagrams, code generation, research) and defines a clear priority order for delegating tasks to its specialized tools/sub-agents.
     *   **Tools**: Uses `AgentTool` to wrap all the specialized sub-agents, allowing the `root_agent` (an `LlmAgent`) to call them as tools.
+
+### Low-Level Architecture
+
+*(A detailed diagram showing the interaction between the `root_agent` and its specialized sub-agents, including how `AgentTool` is used for delegation and how data flows through `session.state` between them. It should illustrate the internal components of the `root_agent` and how it calls the `AgentTool`s to invoke the sub-agents.)*
+
+![Low-Level Architecture Diagram](docs/low-level-ig.png)
+
 
 #### Running Locally
 
@@ -127,6 +140,11 @@ Deployment configurations are located in the `.cloudbuild/` directory (e.g., `st
 **Environment Variable Management for Deployment:**
 
 For production deployments, sensitive environment variables (like PATs and API keys) should be securely managed using Google Secret Manager and referenced in your Cloud Build configurations.
+
+### DevOps Workflow Architecture
+
+![DevOps Workflow Architecture Diagram](docs/DevOps.png)
+
 
 ## Testing
 
