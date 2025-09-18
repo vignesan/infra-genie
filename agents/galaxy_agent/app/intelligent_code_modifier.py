@@ -339,7 +339,10 @@ class CodeModificationTool(BaseTool):
                 "Analyze and modify code intelligently using LLM. Can update, remove, or refactor code "
                 "based on natural language instructions. Provides syntax validation and change explanations."
             ),
-            input_schema={
+        )
+
+        # Store input schema as instance variable for reference
+        self.input_schema = {
                 "type": "object",
                 "properties": {
                     "code": {
@@ -368,7 +371,6 @@ class CodeModificationTool(BaseTool):
                 },
                 "required": ["code", "file_path", "operation"]
             }
-        )
         self.modifier = IntelligentCodeModifier()
 
     async def run_async(self, *, args: Dict[str, Any], tool_context) -> Dict[str, Any]:

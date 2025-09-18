@@ -99,22 +99,18 @@ A well-structured ADK project is crucial for maintainability and leveraging `adk
 
 ```
 your_project_root/
-├── my_first_agent/             # Each folder is a distinct agent app
-│   ├── __init__.py             # Makes `my_first_agent` a Python package (`from . import agent`)
+├── app/                        # The primary agent application directory
+│   ├── __init__.py             # Makes `app` a Python package (`from . import agent`)
 │   ├── agent.py                # Contains `root_agent` definition and `LlmAgent`/WorkflowAgent instances
-│   ├── tools.py                # Custom tool function definitions
-│   ├── data/                   # Optional: static data, templates
+│   ├── tools/                  # Custom tool function definitions (e.g., git_tools.py)
 │   └── .env                    # Environment variables (API keys, project IDs)
-├── my_second_agent/
-│   ├── __init__.py
-│   └── agent.py
 ├── requirements.txt            # Project's Python dependencies (e.g., google-adk, litellm)
 ├── tests/                      # Unit and integration tests
 │   ├── unit/
 │   │   └── test_tools.py
 │   └── integration/
-│       └── test_my_first_agent.py
-│       └── my_first_agent.evalset.json # Evaluation dataset for `adk eval`
+│       └── test_agent.py
+│       └── agent.evalset.json  # Evaluation dataset for `adk eval`
 └── main.py                     # Optional: Entry point for custom FastAPI server deployment
 ```
 *   `adk web` and `adk run` automatically discover agents in subdirectories with `__init__.py` and `agent.py`.
@@ -169,14 +165,14 @@ ADK allows you to define agents, tools, and even multi-agent workflows using a s
     ```yaml
     agent_class: LlmAgent
     model: gemini-2.5-flash
-    name: prime_agent
-    description: Handles checking if numbers are prime.
+    name: compliance_agent
+    description: Handles checking code compliance against defined guardrails.
     instruction: |
-      You are responsible for checking whether numbers are prime.
-      When asked to check primes, you must call the check_prime tool with a list of integers.
-      Never attempt to determine prime numbers manually.
+      You are responsible for checking code compliance.
+      When asked to check compliance, you must call the check_compliance tool with the code to analyze.
+      Never attempt to determine compliance manually.
     tools:
-      - name: ma_llm.check_prime # Reference to Python function
+      - name: app.compliance_api.check_compliance # Reference to Python function
     ```
 
 *   **Multi-Agent System with Sub-Agents**:
@@ -680,7 +676,7 @@ root_agent = interactive_planner_agent
 
 The Agent-to-Agent (A2A) Protocol enables agents to communicate over a network, even if they are written in different languages or run as separate services. Use A2A for integrating with third-party agents, building microservice-based agent architectures, or when a strong, formal API contract is needed. For internal code organization, prefer local sub-agents.
 
-*   **Exposing an Agent**: Make an existing ADK agent available to others over A2A.
+*   **Exposing an Agent**: Make an existing ADK agent available to others over A2A. The Infrastructure Genie project can expose its `root_agent` for consumption by other services.
     *   **`to_a2a()` Utility**: The simplest method. Wraps your `root_agent` and creates a runnable FastAPI app, auto-generating the required `agent.json` card.
         ```python
         from google.adk.a2a.utils.agent_to_a2a import to_a2a
@@ -690,18 +686,7 @@ The Agent-to-Agent (A2A) Protocol enables agents to communicate over a network, 
         ```
     *   **`adk api_server --a2a`**: A CLI command that serves agents from a directory. Requires you to manually create an `agent.json` card for each agent you want to expose.
 
-*   **Consuming a Remote Agent**: Use a remote A2A agent as if it were a local agent.
-    *   **`RemoteA2aAgent`**: This agent acts as a client proxy. You initialize it with the URL to the remote agent's card.
-        ```python
-        from google.adk.a2a.remote_a2a_agent import RemoteA2aAgent
-
-        # This agent can now be used as a sub-agent or tool
-        prime_checker_agent = RemoteA2aAgent(
-            name="prime_agent",
-            description="A remote agent that checks if numbers are prime.",
-            agent_card="http://localhost:8001/a2a/check_prime_agent/.well-known/agent.json"
-        )
-        ```
+*   **Consuming a Remote Agent**: (Note: The Infrastructure Genie project does not currently consume remote A2A agents.)
 
 ---
 
@@ -1197,9 +1182,10 @@ Serverless container platform for custom web applications.
     from fastapi import FastAPI
     from google.adk.cli.fast_api import get_fast_api_app
 
-    # Ensure your agent_folder (e.g., 'my_first_agent') is in the same directory as main.py
+    # For the Infrastructure Genie project, the main application is in 'app/server.py'
+    # The agents_dir should point to the directory containing the root agent (app/agent.py)
     app: FastAPI = get_fast_api_app(
-        agents_dir=os.path.dirname(os.path.abspath(__file__)),
+        agents_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "app"),
         session_service_uri="sqlite:///./sessions.db", # In-container SQLite, for simple cases
         # For production: use a persistent DB (Cloud SQL) or VertexAiSessionService
         allow_origins=["*"],

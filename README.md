@@ -1,97 +1,139 @@
-# infrastructure-genie
+# Infrastructure Genie
 
-A base ReAct agent built with Google's Agent Development Kit (ADK)
-Agent generated with [`googleCloudPlatform/agent-starter-pack`](https://github.com/GoogleCloudPlatform/agent-starter-pack) version `0.14.1`
+## Project Overview
 
-## Project Structure
+**Infrastructure Genie** is an intelligent automation project leveraging Google's Generative AI (GenAI) agents to streamline infrastructure management, code generation, and DevOps workflows. It acts as a smart orchestrator, capable of understanding complex requests, interacting with various tools and APIs, and automating tasks across different platforms.
 
-This project is organized as follows:
+**Key Features:**
+*   **Intelligent RAG (Retrieval Augmented Generation):** Accesses and synthesizes information from diverse sources (e.g., documentation, codebases) to inform agent decisions.
+*   **Diagram Generation:** Automates the creation of technical diagrams based on infrastructure descriptions or code analysis.
+*   **Code Compliance & Guardrails:** Integrates with compliance APIs to ensure generated or modified code adheres to predefined standards.
+*   **Automated Code Modification & CI/CD (via Galaxy Agent):** Handles end-to-end code changes, Git operations, Pull Request creation, and CI/CD pipeline management triggered by external events (e.g., Azure DevOps webhooks).
 
-```
-infrastructure-genie/
-├── app/                 # Core application code
-│   ├── agent.py         # Main agent logic
-│   ├── server.py        # FastAPI Backend server
-│   └── utils/           # Utility functions and helpers
-├── .cloudbuild/         # CI/CD pipeline configurations for Google Cloud Build
-├── deployment/          # Infrastructure and deployment scripts
-├── notebooks/           # Jupyter notebooks for prototyping and evaluation
-├── tests/               # Unit, integration, and load tests
-├── Makefile             # Makefile for common commands
-├── GEMINI.md            # AI-assisted development guide
-└── pyproject.toml       # Project dependencies and configuration
-```
+## Project Setup
 
-## Requirements
+### Prerequisites
 
-Before you begin, ensure you have:
-- **uv**: Python package manager (used for all dependency management in this project) - [Install](https://docs.astral.sh/uv/getting-started/installation/) ([add packages](https://docs.astral.sh/uv/concepts/dependencies/) with `uv add <package>`)
-- **Google Cloud SDK**: For GCP services - [Install](https://cloud.google.com/sdk/docs/install)
-- **Terraform**: For infrastructure deployment - [Install](https://developer.hashicorp.com/terraform/downloads)
-- **make**: Build automation tool - [Install](https://www.gnu.org/software/make/) (pre-installed on most Unix-based systems)
+Ensure you have the following installed on your system:
+*   **Python:** Version 3.11 (recommended).
+*   **`uv`:** A fast Python package installer and resolver. Install via `pip install uv`.
+*   **Google Cloud CLI (`gcloud`):** Authenticated and configured for your GCP project.
+*   **Docker:** For building and running container images.
+*   **Git:** For version control.
 
-
-## Quick Start (Local Testing)
-
-Install required packages and launch the local development environment:
+### Cloning the Repository
 
 ```bash
-make install && make playground
+git clone https://github.com/your-repo/infrastructure-genie.git
+cd infrastructure-genie
 ```
 
-## Commands
+### Installing Dependencies
 
-| Command              | Description                                                                                 |
-| -------------------- | ------------------------------------------------------------------------------------------- |
-| `make install`       | Install all required dependencies using uv                                                  |
-| `make playground`    | Launch local development environment with backend and frontend - leveraging `adk web` command.|
-| `make backend`       | Deploy agent to Cloud Run (use `IAP=true` to enable Identity-Aware Proxy) |
-| `make local-backend` | Launch local development server |
-| `make test`          | Run unit and integration tests                                                              |
-| `make lint`          | Run code quality checks (codespell, ruff, mypy)                                             |
-| `make setup-dev-env` | Set up development environment resources using Terraform                         |
-| `uv run jupyter lab` | Launch Jupyter notebook                                                                     |
+Navigate to the project root and use `uv` to install all required dependencies:
 
-For full command options and usage, refer to the [Makefile](Makefile).
+```bash
+uv sync
+```
+
+### Environment Variables
+
+Both the main `infrastructure-genie` agent and the `galaxy_agent` rely on environment variables for configuration and authentication. It is highly recommended to use a `.env` file for local development and Google Secret Manager for production deployments.
+
+**Common Variables (for main `infrastructure-genie` agent):**
+
+*   `GOOGLE_CLOUD_PROJECT`: Your Google Cloud Project ID.
+*   `GOOGLE_CLOUD_LOCATION`: The GCP region (e.g., `europe-west4`).
+*   `GOOGLE_GENAI_USE_VERTEXAI`: Set to `True` to use Vertex AI for Gemini models, `False` for Google AI Studio.
+*   `GOOGLE_API_KEY`: Your Google Gemini API Key (if `GOOGLE_GENAI_USE_VERTEXAI` is `False`).
 
 
-## Usage
 
-This template follows a "bring your own agent" approach - you focus on your business logic, and the template handles everything else (UI, infrastructure, deployment, monitoring).
+## Agents and Their Usage
 
-1. **Prototype:** Build your Generative AI Agent using the intro notebooks in `notebooks/` for guidance. Use Vertex AI Evaluation to assess performance.
-2. **Integrate:** Import your agent into the app by editing `app/agent.py`.
-3. **Test:** Explore your agent functionality using the Streamlit playground with `make playground`. The playground offers features like chat history, user feedback, and various input types, and automatically reloads your agent on code changes.
-4. **Deploy:** Set up and initiate the CI/CD pipelines, customizing tests as necessary. Refer to the [deployment section](#deployment) for comprehensive instructions. For streamlined infrastructure deployment, simply run `uvx agent-starter-pack setup-cicd`. Check out the [`agent-starter-pack setup-cicd` CLI command](https://googlecloudplatform.github.io/agent-starter-pack/cli/setup_cicd.html). Currently supports GitHub with both Google Cloud Build and GitHub Actions as CI/CD runners.
-5. **Monitor:** Track performance and gather insights using Cloud Logging, Tracing, and the Looker Studio dashboard to iterate on your application.
+This project comprises two main agent applications, designed to operate either independently or in conjunction for comprehensive automation.
 
-The project includes a `GEMINI.md` file that provides context for AI tools like Gemini CLI when asking questions about your template.
+### 1. Main `Infrastructure Genie` Agent
+
+*   **Location:** `app/` directory.
+*   **Purpose:** This is the core intelligent orchestrator for infrastructure-as-code tasks. It leverages various specialized tools and RAG capabilities to understand requests, generate diagrams, check compliance, and provide intelligent responses.
+*   **Key Components & Tools:**
+    *   `rag_enabled_agents.py`: Defines the main agent and integrates various RAG-powered specialists (GitHub, Microsoft Learn, Terraform docs, general search).
+    *   `diagram_generator_tool.py`: Tool for generating infrastructure diagrams.
+    *   `compliance_api.py`: Integrates with compliance guardrails.
+    *   `mcp_github.py`: Tools for interacting with GitHub repositories.
+
+### Agent Breakdown:
+
+Here's a detailed look at the specialized agents within the `Infrastructure Genie` and their roles:
+
+1.  **`github_sub_agent` (`github_specialist`)**:
+    *   **Purpose**: Extracts information from GitHub repositories using `create_github_mcp()`.
+    *   **Focus**: Repository architecture, tech stack, deployment configurations for diagram generation.
+    *   **Output**: `github_info` in session state.
+
+2.  **`microsoft_sub_agent` (`microsoft_specialist`)**:
+    *   **Purpose**: Retrieves information from Microsoft Learn documentation using `create_microsoft_learn_mcp()`.
+    *   **Focus**: Azure service details, architecture patterns, component relationships, configurations, and best practices for diagram generation.
+    *   **Output**: `microsoft_info` in session state.
+
+3.  **`terraform_sub_agent` (`terraform_specialist`)**:
+    *   **Purpose**: Works with Terraform documentation and generates infrastructure-as-code using `create_terraform_docs_mcp()`.
+    *   **Focus**: Generating Terraform resource blocks, configurations, and providers; explicitly generates code, not diagrams.
+    *   **Output**: `terraform_info` in session state.
+
+4.  **`search_sub_agent` (`search_specialist`)**:
+    *   **Purpose**: A general technical search specialist using `google_search`.
+    *   **Focus**: General technical knowledge, best practices, and architecture patterns when other specialists lack specific information.
+    *   **Output**: `search_info` in session state.
+
+5.  **`image_generation_sub_agent` (`image_generation_specialist`)**:
+    *   **Purpose**: Generates technical images/diagrams using an AI-driven approach via `generate_technical_image`.
+    *   **Focus**: Analyzing context (GitHub, Microsoft, search info) to identify cloud providers, services, architecture patterns, and data flows, then generating Python diagrams code.
+    *   **Output**: `image_result` (status) in session state.
+
+6.  **`diagrams_expert_agent` (`diagrams_expert`)**:
+    *   **Purpose**: A RAG-powered diagram specialist with code generation capabilities, preferred for diagram requests.
+    *   **Focus**: Uses RAG knowledge to generate accurate Python code for professional technical diagrams.
+
+7.  **`code_generator_agent` (`code_generator_specialist`)**:
+    *   **Purpose**: Creates complete applications, APIs, and infrastructure code.
+    *   **Focus**: Uses GitHub examples, Microsoft docs, and Terraform resources for code generation.
+
+8.  **`root_agent` (`infrastructure_genie`)**:
+    *   **Purpose**: The main orchestrator for the entire `infrastructure-genie` application. It coordinates and delegates tasks to the specialized sub-agents based on the user's request.
+    *   **Instruction**: Provides a comprehensive overview of its capabilities (diagrams, code generation, research) and defines a clear priority order for delegating tasks to its specialized tools/sub-agents.
+    *   **Tools**: Uses `AgentTool` to wrap all the specialized sub-agents, allowing the `root_agent` (an `LlmAgent`) to call them as tools.
+
+#### Running Locally
+
+Navigate to the project root and run the FastAPI application:
+
+```bash
+uv run app.server:app --host 0.0.0.0 --port 8080
+```
+
 
 
 ## Deployment
 
-> **Note:** For a streamlined one-command deployment of the entire CI/CD pipeline and infrastructure using Terraform, you can use the [`agent-starter-pack setup-cicd` CLI command](https://googlecloudplatform.github.io/agent-starter-pack/cli/setup_cicd.html). Currently supports GitHub with both Google Cloud Build and GitHub Actions as CI/CD runners.
+This project uses Google Cloud Run for deploying the main `infrastructure-genie` agent. CI/CD is managed via Google Cloud Build.
 
-### Dev Environment
+*   **Cloud Run:** Serverless platform for containerized applications.
+*   **Google Cloud Build:** Automates the build and deployment process.
 
-You can test deployment towards a Dev Environment using the following command:
+Deployment configurations are located in the `.cloudbuild/` directory (e.g., `staging.yaml`, `deploy-to-prod.yaml`). These files define the steps for building the Docker image and deploying it to Cloud Run.
+
+**Environment Variable Management for Deployment:**
+
+For production deployments, sensitive environment variables (like PATs and API keys) should be securely managed using Google Secret Manager and referenced in your Cloud Build configurations.
+
+## Testing
+
+To run local tests for the main `infrastructure-genie` agent:
 
 ```bash
-gcloud config set project <your-dev-project-id>
-make backend
+uv run pytest
 ```
 
-
-The repository includes a Terraform configuration for the setup of the Dev Google Cloud project.
-See [deployment/README.md](deployment/README.md) for instructions.
-
-### Production Deployment
-
-The repository includes a Terraform configuration for the setup of a production Google Cloud project. Refer to [deployment/README.md](deployment/README.md) for detailed instructions on how to deploy the infrastructure and application.
-
-
-## Monitoring and Observability
-> You can use [this Looker Studio dashboard](https://lookerstudio.google.com/reporting/46b35167-b38b-4e44-bd37-701ef4307418/page/tEnnC
-) template for visualizing events being logged in BigQuery. See the "Setup Instructions" tab to getting started.
-
-The application uses OpenTelemetry for comprehensive observability with all events being sent to Google Cloud Trace and Logging for monitoring and to BigQuery for long term storage.
+(More detailed testing instructions can be found in the `tests/` directory READMEs.)

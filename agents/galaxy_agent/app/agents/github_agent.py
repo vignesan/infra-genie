@@ -22,6 +22,10 @@ from google.adk.tools import FunctionTool
 
 class GitHubAgent(Agent):
     def __init__(self, github_pat: str = None, repo_owner: str = None):
+        # Store credentials as class attributes before calling super().__init__
+        self._github_pat = github_pat
+        self._repo_owner = repo_owner
+
         super().__init__(
             name="galaxy_github_agent",
             model="gemini-2.5-flash",
@@ -46,15 +50,13 @@ class GitHubAgent(Agent):
                 FunctionTool(self.push_changes),
             ],
         )
-        self.github_pat = github_pat
-        self.repo_owner = repo_owner
 
     def clone_repository(self, repo_url: str, branch: str = "main") -> str:
         """Clone a GitHub repository.
         Requires GITHUB_PAT to be set as an environment variable for git commands.
         """
         # Example of how to use run_shell_command if available
-        # os.environ["GITHUB_TOKEN"] = self.github_pat # Set token for git
+        # os.environ["GITHUB_TOKEN"] = self._github_pat # Set token for git
         # result = run_shell_command(f"git clone {repo_url} -b {branch}")
         return f"Cloning repository: {repo_url} (branch: {branch})\n📋 Repository cloned successfully to local environment." # Placeholder
 

@@ -13,9 +13,8 @@
 # limitations under the License.
 
 import os
-from google.adk.agents import SequentialAgent, Agent
-from google.adk.a2a import RemoteA2aAgent
-from google.adk.tools import AgentTool
+from google.adk.agents import SequentialAgent
+from google.adk.agents import Agent
 from .agents.code_agent import code_agent
 from .agents.github_agent import GitHubAgent
 from .agents.azuredevops_agent import AzureDevOpsAgent
@@ -115,8 +114,6 @@ class CodeModificationAgent(SequentialAgent):
 code_modification_agent = CodeModificationAgent()
 
 code_generator_modifier_agent_tools = [intelligent_code_tool]
-if remote_infrastructure_genie:
-    code_generator_modifier_agent_tools.append(AgentTool(remote_infrastructure_genie))
 
 code_generator_modifier_agent = Agent(
     name="code_generator_modifier_agent",
@@ -125,17 +122,12 @@ code_generator_modifier_agent = Agent(
         "You are an expert code generator and modifier. Your task is to generate or modify code "
         "based on the 'core_request' stored in the session state. "
         "Use the 'intelligent_code_modifier' tool to analyze and modify code. "
-        "For any programming language or technical topic, you can leverage the "
-        "'infrastructure_genie_service' tool to perform web searches, access documentation (e.g., Terraform docs, Microsoft docs), "
-        "and utilize its RAG capabilities for comprehensive research. "
-        "Utilize the 'infrastructure_genie_service' tool as much as possible for research and information gathering. "
         "You will be provided with the current code and a specific instruction. "
         "Your goal is to produce the 'modified_code' and store it in the session state under 'modified_code_output'. "
         "If you need to read existing code, you will be provided with it. "
         "Always strive for correct, idiomatic, and efficient code."
     ),
-    description="Generates or modifies code based on requirements using the intelligent code modifier tool, "
-                "and can research any technical topic via infrastructure_genie_service's web search and RAG capabilities.",
+    description="Generates or modifies code based on requirements using the intelligent code modifier tool.",
     tools=code_generator_modifier_agent_tools,
     output_key="modified_code_output" # Store the output of this agent
 )
@@ -265,17 +257,7 @@ if azuredevops_agent_instance:
         tools=[azuredevops_agent_instance.add_work_item_comment],
     )
 
-# Get Infrastructure Genie URL from environment variable
-INFRASTRUCTURE_GENIE_URL = os.getenv("INFRASTRUCTURE_GENIE_URL")
 
-# Define the remote Infrastructure Genie agent
-remote_infrastructure_genie = None
-if INFRASTRUCTURE_GENIE_URL:
-    remote_infrastructure_genie = RemoteA2aAgent(
-        name="infrastructure_genie_service",
-        description="The remote Infrastructure Genie service for managing cloud resources.",
-        agent_card=INFRASTRUCTURE_GENIE_URL
-    )
 
 # Get GitHub credentials from environment variables
 GALAXY_GITHUB_PAT = os.getenv("GALAXY_GITHUB_PAT")
@@ -348,7 +330,7 @@ sub_agents_list = [
 # The orchestrator agent coordinates multiple specialized agents
 # It analyzes requests, routes them to appropriate agents, and manages the overall workflow
 class GalaxyOrchestrator(SequentialAgent):
-    def __init__(self, remote_infrastructure_genie: RemoteA2aAgent = None):
+    def __init__(self):
         super().__init__(
             name="galaxy_orchestrator",
             description=(
@@ -356,7 +338,7 @@ class GalaxyOrchestrator(SequentialAgent):
                 "It analyzes user requests and determines the best agent to handle each task, "
                 "ensuring efficient and accurate task execution across code, DevOps, and workflow domains."
             ),
-            sub_agents=sub_agents_list + ([remote_infrastructure_genie] if remote_infrastructure_genie else []),
+            sub_agents=sub_agents_list,
         )
 
 galaxy_orchestrator = GalaxyOrchestrator()

@@ -20,11 +20,9 @@ steps:
         "build",
         "-t",
         "$_REGION-docker.pkg.dev/$PROJECT_ID/$_ARTIFACT_REGISTRY_REPO_NAME/$_CONTAINER_NAME",
-        "agents/galaxy_agent",
-        "-f",
-        "agents/galaxy_agent/Dockerfile",
         "--build-arg",
         "COMMIT_SHA=$COMMIT_SHA",
+        ".",
       ]
   - name: "gcr.io/cloud-builders/docker"
     args:
